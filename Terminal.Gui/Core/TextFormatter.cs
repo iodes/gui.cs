@@ -419,7 +419,7 @@ namespace Terminal.Gui {
 					cols = 0;
 				} else {
 					if (rune != '\r') {
-						cols++;
+						cols += Rune.ColumnWidth (rune);
 					}
 				}
 			}
@@ -563,7 +563,18 @@ namespace Terminal.Gui {
 			for (int line = 0; line < Lines.Count; line++) {
 				if (line > bounds.Height)
 					continue;
-				var runes = lines [line].ToRunes ();
+				var runes = lines [line].ToRunes ().ToList ();
+
+				for (var i = 0; i < runes.Count; i++) {
+					var rune = runes [i];
+					var runeWidth = Rune.ColumnWidth (rune);
+					if (runeWidth > 1) {
+						for (int j = 1; j < runeWidth; j++) {
+							runes.Insert (i + 1, new Rune (' '));
+						}
+					}
+				}
+
 				int x;
 				switch (textAlignment) {
 				case TextAlignment.Left:
@@ -573,10 +584,10 @@ namespace Terminal.Gui {
 					x = bounds.Left;
 					break;
 				case TextAlignment.Right:
-					x = bounds.Right - runes.Length;
+					x = bounds.Right - runes.Count;
 					break;
 				case TextAlignment.Centered:
-					x = bounds.Left + (bounds.Width - runes.Length) / 2;
+					x = bounds.Left + (bounds.Width - runes.Count) / 2;
 					break;
 				default:
 					throw new ArgumentOutOfRangeException ();
@@ -584,7 +595,7 @@ namespace Terminal.Gui {
 				for (var col = bounds.Left; col < bounds.Left + bounds.Width; col++) {
 					Application.Driver?.Move (col, bounds.Top + line);
 					var rune = (Rune)' ';
-					if (col >= x && col < (x + runes.Length)) {
+					if (col >= x && col < (x + runes.Count)) {
 						rune = runes [col - x];
 					}
 					if ((rune & HotKeyTagMask) == HotKeyTagMask) {
